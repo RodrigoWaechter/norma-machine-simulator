@@ -1,0 +1,12 @@
+1: se zero_c entao va_para 2 senao faca sub_c va_para 1
+2: se zero_b entao va_para 8 senao faca sub_b va_para 3
+3: se zero_a entao va_para 6 senao faca sub_a va_para 4
+4: faca add_c va_para 5
+5: faca add_d va_para 3
+6: se zero_d entao va_para 2 senao faca sub_d va_para 7
+7: faca add_a va_para 6
+8: se zero_a entao va_para 9 senao faca sub_a va_para 8
+9: se zero_c entao va_para 11 senao faca sub_c va_para 10
+10: faca add_a va_para 9
+11:
+
