@@ -6,6 +6,9 @@ from typing import List
 from norma import Registrador, ler_programas, executar
 
 class NormaApp(tk.Tk):
+    # ============================
+    # Inicializa a aplicação e seus componentes
+    # ============================
     def __init__(self):
         super().__init__()
         self.title("Simulador de Máquina Norma")
@@ -19,6 +22,9 @@ class NormaApp(tk.Tk):
         self.update_register_entries()
         self.populate_and_load_initial_file()
 
+    # ============================
+    # Cria e posiciona todos os elementos visuais da interface
+    # ============================
     def create_widgets(self):
         main_frame = ttk.Frame(self, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -75,15 +81,16 @@ class NormaApp(tk.Tk):
         self.execute_button = ttk.Button(action_frame, text="Executar Programa (main.txt)", command=self.run_main_simulation)
         self.execute_button.pack(side=tk.LEFT, padx=5)
         
-        # Novo botão para executar o arquivo que está aberto no editor
         self.execute_current_button = ttk.Button(action_frame, text="Executar Arquivo Aberto", command=self.run_current_file_simulation)
         self.execute_current_button.pack(side=tk.LEFT, padx=5)
         
         self.clear_button = ttk.Button(action_frame, text="Limpar", command=self.clear_results)
         self.clear_button.pack(side=tk.LEFT, padx=5)
 
+    # ============================
+    # Contém a lógica central para executar a simulação
+    # ============================
     def _execute_logic(self, start_file: str):
-        """Lógica de execução refatorada para ser usada por ambos os botões."""
         self.save_editor_to_file()
         
         self.log_output.config(state="normal")
@@ -125,15 +132,22 @@ class NormaApp(tk.Tk):
         finally:
             self.log_output.config(state="disabled")
 
+    # ============================
+    # Executa a simulação a partir do arquivo main.txt
+    # ============================
     def run_main_simulation(self):
-        """Executa a simulação a partir do main.txt."""
         self._execute_logic("main.txt")
 
+    # ============================
+    # Executa a simulação a partir do arquivo aberto no editor
+    # ============================
     def run_current_file_simulation(self):
-        """Executa a simulação a partir do arquivo selecionado no combobox."""
         selected_file = self.macro_selector.get()
         self._execute_logic(selected_file)
 
+    # ============================
+    # Carrega a lista de macros e abre o arquivo inicial
+    # ============================
     def populate_and_load_initial_file(self):
         if not os.path.exists(self.macros_dir): os.makedirs(self.macros_dir)
         main_path = os.path.join(self.macros_dir, "main.txt")
@@ -150,6 +164,9 @@ class NormaApp(tk.Tk):
             self.macro_selector.set(first_file)
             self.load_file_to_editor(first_file)
 
+    # ============================
+    # Carrega o conteúdo de um arquivo para o editor de texto
+    # ============================
     def load_file_to_editor(self, filename):
         self.current_file_path = os.path.join(self.macros_dir, filename)
         self.code_frame.config(text=f"Editor de Código ({filename})")
@@ -160,6 +177,9 @@ class NormaApp(tk.Tk):
         except Exception as e:
             messagebox.showerror("Erro de Leitura", f"Não foi possível ler o arquivo '{filename}':\n{e}")
 
+    # ============================
+    # Salva o conteúdo do editor no arquivo atual
+    # ============================
     def save_editor_to_file(self):
         if not self.current_file_path: return
         try:
@@ -168,11 +188,17 @@ class NormaApp(tk.Tk):
         except Exception as e:
             messagebox.showerror("Erro ao Salvar", f"Não foi possível salvar o arquivo '{self.current_file_path}':\n{e}")
 
+    # ============================
+    # Gerencia a troca de arquivos no seletor
+    # ============================
     def on_file_select(self, event=None):
         self.save_editor_to_file()
         new_file = self.macro_selector.get()
         self.load_file_to_editor(new_file)
 
+    # ============================
+    # Limpa os resultados da tela e reseta os registradores
+    # ============================
     def clear_results(self):
         self.log_output.config(state="normal")
         self.log_output.delete("1.0", tk.END)
@@ -182,6 +208,9 @@ class NormaApp(tk.Tk):
             widget.delete(0, tk.END)
             widget.insert(0, "0")
             
+    # ============================
+    # Atualiza os campos de entrada dos registradores
+    # ============================
     def update_register_entries(self):
         for widget in self.regs_frame.winfo_children(): widget.destroy()
         self.registradores_widgets.clear()
