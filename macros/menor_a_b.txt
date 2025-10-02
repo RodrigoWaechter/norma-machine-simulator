@@ -1,0 +1,9 @@
+1: se zero_a entao va_para 6 senao va_para 2
+2: se zero_b entao va_para 6 senao va_para 3
+3: sub_a
+4: sub_b
+5: add_c
+6: va_para 1
+7:
+
+

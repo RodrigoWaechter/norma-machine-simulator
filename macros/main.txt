@@ -1,4 +1,8 @@
-1: faca m_maior_a_b
+1: sub_b
+2: sub_a
+3: se zero_a sub_a senao m_exemplomacro
+
+
 
 
 

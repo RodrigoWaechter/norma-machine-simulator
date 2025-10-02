@@ -182,7 +182,7 @@ def executar_com_logs(
 
     prog = programas.get(arquivo)
     if not prog:
-        return regs, log_acumulado # Retorno simples em caso de erro
+        return regs, log_acumulado
 
     blocos_por_linha = {ln: quebrar_em_blocos(txt) for ln, txt in prog.items()}
     linhas = sorted(blocos_por_linha)
@@ -196,10 +196,14 @@ def executar_com_logs(
         except (ValueError, IndexError): return None
 
     atual = linhas[0]
-    # Proteção contra loop infinito removida
-
+    passos_limite = 1000 
+    passos_executados = 0
     while True:
-        # Geração de log de estado mantida
+        if passos_executados > passos_limite:
+            log_acumulado.append("ERROR|Limite de execução excedido. Possível loop infinito.")
+            return regs, log_acumulado
+        passos_executados += 1
+    
         estado_regs = ", ".join(map(str, regs))
         instrucao = prog.get(atual, "") 
         log_acumulado.append(f"STATE|[{arquivo}:{atual}] -> {instrucao.ljust(50)} | Regs: [{estado_regs}]")
@@ -212,7 +216,7 @@ def executar_com_logs(
             if b.startswith("se zero_"):
                 reg_nome = b.split("zero_", 1)[1]
                 idx = ord(reg_nome) - ord("a")
-                if not (0 <= idx < len(regs)): return regs, log_acumulado # Retorno simples
+                if not (0 <= idx < len(regs)): return regs, log_acumulado
                 reg = regs[idx]
                 try:
                     idx_senao = blocos.index("senao", i + 1)
@@ -223,33 +227,31 @@ def executar_com_logs(
                     blocos = blocos[:i] + (true_part if reg.zero() else false_part)
                     continue
                 except ValueError:
-                    return regs, log_acumulado # Retorno simples
+                    return regs, log_acumulado 
 
             if b.startswith("va_para"):
                 partes = b.split()
-                if len(partes) != 2 or not partes[1].isdigit(): return regs, log_acumulado # Retorno simples
+                if len(partes) != 2 or not partes[1].isdigit(): return regs, log_acumulado 
                 nova_linha = int(partes[1])
-                if nova_linha not in prog: return regs, log_acumulado # Retorno simples
+                if nova_linha not in prog: return regs, log_acumulado 
                 atual = nova_linha
                 break
 
-            # Usando o parse simplificado do 'executar'
             if b.startswith("add_"):
                 idx = ord(b[4:]) - ord("a")
-                if not (0 <= idx < len(regs)): return regs, log_acumulado # Retorno simples
+                if not (0 <= idx < len(regs)): return regs, log_acumulado
                 regs[idx].inc()
                 i += 1; continue
 
             if b.startswith("sub_"):
                 idx = ord(b[4:]) - ord("a")
-                if not (0 <= idx < len(regs)): return regs, log_acumulado # Retorno simples
+                if not (0 <= idx < len(regs)): return regs, log_acumulado 
                 regs[idx].dec()
                 i += 1; continue
 
             if b.startswith("m_"):
                 nome_macro = b[2:] + ".txt" if not b.endswith(".txt") else b[2:]
-                if nome_macro not in programas: return regs, log_acumulado # Retorno simples
-                # A recursão continua chamando a si mesma para manter o log
+                if nome_macro not in programas: return regs, log_acumulado 
                 regs, log_acumulado = executar_com_logs(programas, regs, nome_macro, log_acumulado)
                 i += 1; continue
             i += 1
