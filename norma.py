@@ -1,6 +1,5 @@
 import os
-from typing import Dict, List, Tuple # ALTERAÇÃO 1: Adicionado 'Tuple'
-
+from typing import Dict, List, Tuple 
 # ============================
 # Registrador
 # ============================
@@ -74,11 +73,104 @@ def quebrar_em_blocos(texto: str) -> List[str]:
             blocos.append(w); i += 1
     return blocos
 
-
 # ======================================
 # Execução: interpreta um arquivo .txt
 # ======================================
 def executar(
+    programas: Dict[str, Dict[int, str]],
+    regs: List[Registrador],          
+    arquivo: str = "main.txt",
+    log: bool = False,  
+) -> None:
+    prog = programas.get(arquivo)
+    if not prog:
+        return
+
+    blocos_por_linha = {ln: quebrar_em_blocos(txt) for ln, txt in prog.items()}
+    linhas = sorted(blocos_por_linha) 
+    if not linhas:
+        return
+
+    def prox_linha(ln: int):
+        try:
+            i = linhas.index(ln)
+            return linhas[i + 1]
+        except (ValueError, IndexError):
+            return None
+
+    atual = linhas[0]  
+
+    while True:
+        blocos = list(blocos_por_linha[atual])
+        i = 0
+
+        if log:
+            print(f"[{arquivo}:{atual}]")
+
+        while i < len(blocos):
+            b = blocos[i]
+            if b.startswith("faca "):
+                b = b.split(" ", 1)[1]
+
+            if b.startswith("se zero_"):
+                reg_nome = b.split("zero_", 1)[1]  
+                idx = ord(reg_nome) - ord("a")   
+                reg = regs[idx]                  
+                try:
+                    idx_senao = blocos.index("senao", i + 1)
+                except ValueError:
+                    return
+                ini_true = i + 1
+                if ini_true < len(blocos) and blocos[ini_true] == "entao":
+                    ini_true += 1
+                true_part  = blocos[ini_true:idx_senao]   
+                false_part = blocos[idx_senao + 1:]     
+                escolhido = true_part if reg.zero() else false_part
+                blocos = blocos[:i] + escolhido
+                continue
+
+            if b.startswith("va_para"):
+                partes = b.split()
+                if len(partes) != 2 or not partes[1].isdigit():
+                    return
+                atual = int(partes[1])
+                break
+
+            if b.startswith("add_"):
+                idx = ord(b[4:]) - ord("a")
+                if idx < 0 or idx >= len(regs): return
+                regs[idx].inc()
+                i += 1
+                continue
+
+            if b.startswith("sub_"):
+                idx = ord(b[4:]) - ord("a")
+                if idx < 0 or idx >= len(regs): return
+                regs[idx].dec()
+                i += 1
+                continue
+
+            if b.startswith("m_"):
+                nome_macro = b[2:]
+                if not nome_macro.endswith(".txt"):
+                    nome_macro += ".txt"
+                if nome_macro not in programas:
+                    return
+                executar(programas, regs, nome_macro, log=log)
+                i += 1
+                continue
+
+        else:
+            proxima = prox_linha(atual)
+            if proxima is None:
+                return
+            atual = proxima
+            continue
+
+# ======================================
+# Execução: interpreta um arquivo .txt (com logs)
+# ======================================
+def executar_com_logs(
     programas: Dict[str, Dict[int, str]],
     regs: List[Registrador],
     arquivo: str = "main.txt",
@@ -90,8 +182,7 @@ def executar(
 
     prog = programas.get(arquivo)
     if not prog:
-        log_acumulado.append(f"ERROR|Arquivo de programa '{arquivo}' não encontrado.")
-        return regs, log_acumulado
+        return regs, log_acumulado # Retorno simples em caso de erro
 
     blocos_por_linha = {ln: quebrar_em_blocos(txt) for ln, txt in prog.items()}
     linhas = sorted(blocos_por_linha)
@@ -105,20 +196,13 @@ def executar(
         except (ValueError, IndexError): return None
 
     atual = linhas[0]
-    passos_limite = 1000
-    passos_executados = 0
+    # Proteção contra loop infinito removida
 
     while True:
-        if passos_executados > passos_limite:
-            log_acumulado.append("ERROR|Limite de execução excedido. Possível loop infinito.")
-            return regs, log_acumulado
-        passos_executados += 1
-        
+        # Geração de log de estado mantida
         estado_regs = ", ".join(map(str, regs))
         instrucao = prog.get(atual, "") 
-        
-        log_line = f"[{arquivo}:{atual}] -> {instrucao.ljust(50)} | Regs: [{estado_regs}]"
-        log_acumulado.append(f"STATE|{log_line}")
+        log_acumulado.append(f"STATE|[{arquivo}:{atual}] -> {instrucao.ljust(50)} | Regs: [{estado_regs}]")
 
         blocos = list(blocos_por_linha[atual])
         i = 0
@@ -128,9 +212,7 @@ def executar(
             if b.startswith("se zero_"):
                 reg_nome = b.split("zero_", 1)[1]
                 idx = ord(reg_nome) - ord("a")
-                if not (0 <= idx < len(regs)):
-                    log_acumulado.append(f"ERROR|Registrador '{reg_nome}' desconhecido.")
-                    return regs, log_acumulado
+                if not (0 <= idx < len(regs)): return regs, log_acumulado # Retorno simples
                 reg = regs[idx]
                 try:
                     idx_senao = blocos.index("senao", i + 1)
@@ -138,51 +220,43 @@ def executar(
                     if ini_true < len(blocos) and blocos[ini_true] == "entao": ini_true += 1
                     true_part = blocos[ini_true:idx_senao]
                     false_part = blocos[idx_senao + 1:]
-                    
-                    escolhido = true_part if reg.zero() else false_part
-                    blocos = blocos[:i] + escolhido
+                    blocos = blocos[:i] + (true_part if reg.zero() else false_part)
                     continue
                 except ValueError:
-                    log_acumulado.append(f"ERROR|Bloco 'se' na linha {atual} não contém 'senao'.")
-                    return regs, log_acumulado
+                    return regs, log_acumulado # Retorno simples
 
             if b.startswith("va_para"):
                 partes = b.split()
-                if len(partes) != 2 or not partes[1].isdigit():
-                    log_acumulado.append(f"ERROR|'va_para' na linha {atual} necessita de um número.")
-                    return regs, log_acumulado
+                if len(partes) != 2 or not partes[1].isdigit(): return regs, log_acumulado # Retorno simples
                 nova_linha = int(partes[1])
-                if nova_linha not in prog:
-                    log_acumulado.append(f"ERROR|Linha de destino '{nova_linha}' não existe em '{arquivo}'.")
-                    return regs, log_acumulado
+                if nova_linha not in prog: return regs, log_acumulado # Retorno simples
                 atual = nova_linha
                 break
 
-            if b.startswith("add_") or b.startswith("sub_"):
-                op, reg_nome = b.split("_")
-                idx = ord(reg_nome) - ord("a")
-                if not (0 <= idx < len(regs)):
-                    log_acumulado.append(f"ERROR|Registrador '{reg_nome}' desconhecido.")
-                    return regs, log_acumulado
-                if op == "add": regs[idx].inc()
-                else: regs[idx].dec()
-                i += 1
-                continue
+            # Usando o parse simplificado do 'executar'
+            if b.startswith("add_"):
+                idx = ord(b[4:]) - ord("a")
+                if not (0 <= idx < len(regs)): return regs, log_acumulado # Retorno simples
+                regs[idx].inc()
+                i += 1; continue
+
+            if b.startswith("sub_"):
+                idx = ord(b[4:]) - ord("a")
+                if not (0 <= idx < len(regs)): return regs, log_acumulado # Retorno simples
+                regs[idx].dec()
+                i += 1; continue
 
             if b.startswith("m_"):
                 nome_macro = b[2:] + ".txt" if not b.endswith(".txt") else b[2:]
-                if nome_macro not in programas:
-                    log_acumulado.append(f"ERROR|Macro '{nome_macro}' não encontrada.")
-                    return regs, log_acumulado
-                regs, log_acumulado = executar(programas, regs, nome_macro, log_acumulado)
-                i += 1
-                continue
+                if nome_macro not in programas: return regs, log_acumulado # Retorno simples
+                # A recursão continua chamando a si mesma para manter o log
+                regs, log_acumulado = executar_com_logs(programas, regs, nome_macro, log_acumulado)
+                i += 1; continue
             i += 1
         else:
             proxima = prox_linha(atual)
             if proxima is None:
                 log_acumulado.append("INFO|--- Fim da Execução ---")
                 return regs, log_acumulado
-            atual = proxima
-            continue
+            atual = proxima; continue
     return regs, log_acumulado

@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import os
 from typing import List
-from norma import Registrador, ler_programas, executar
+from norma import Registrador, ler_programas, executar_com_logs
 
 class NormaApp(tk.Tk):
     # ============================
@@ -113,8 +113,7 @@ class NormaApp(tk.Tk):
             
         try:
             programas = ler_programas(self.macros_dir)
-            final_regs, log_completo = executar(programas, regs, start_file)
-            
+            final_regs, log_completo = executar_com_logs(programas, regs, start_file)               
             for linha in log_completo:
                 partes = linha.split("|", 1)
                 tag = "STATE"
