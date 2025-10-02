@@ -1,9 +1,31 @@
-1: se zero_a entao va_para 6 senao va_para 2
-2: se zero_b entao va_para 6 senao va_para 3
-3: sub_a
-4: sub_b
-5: add_c
-6: va_para 1
-7:
+9:  se zero_a entao va_para 15 senao faca sub_a
+10: faca add_d
+11: faca add_g
+12: va_para 9
+15: se zero_g entao va_para 19 senao faca sub_g
+16: faca add_a
+17: va_para 15
 
+
+19: se zero_b entao va_para 25 senao faca sub_b
+20: faca add_e
+21: faca add_g
+22: va_para 19
+25: se zero_g entao va_para 29 senao faca sub_g
+26: faca add_b
+27: va_para 25
+
+29: se zero_d entao va_para 35 senao faca sub_d
+30: se zero_e entao va_para 41 senao faca sub_e
+31: va_para 29
+
+35: se zero_e entao va_para 49 senao faca add_c
+36: va_para 50
+
+
+41: va_para 50
+
+49: va_para 50
+
+50:
 
